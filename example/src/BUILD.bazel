@@ -120,6 +120,12 @@ kt_jvm_library(
     srcs = ["hello.kt"],
 )
 
+filegroup(
+    name = "hello_sql",
+    srcs = ["hello.sql"],
+    tags = ["lint-with-sqlfluff"],
+)
+
 # Cause a test failure when files are not formatted.
 # This is useful when you have no other way to check formatting on CI; see documentation.
 format_test(
