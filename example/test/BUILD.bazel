@@ -3,8 +3,10 @@
 load("@aspect_rules_lint//format:defs.bzl", "format_test")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("@rules_java//java:java_library.bzl", "java_library")
+load("@rules_python//python:defs.bzl", "py_library")
 load("@rules_shell//shell:sh_library.bzl", "sh_library")
-load("//tools/lint:linters.bzl", "checkstyle_test", "eslint_test", "flake8_test", "pmd_test", "ruff_test", "shellcheck_test")
+load("//tools/lint:linters.bzl", "checkstyle_test", "eslint_test", "flake8_test", "pmd_test", "ruff_test", "shellcheck_test", "sqlfluff_test")
 
 write_file(
     name = "ts_code_generator",
@@ -31,6 +33,22 @@ write_file(
         "#!/usr/bin/env bash",
         "[ -z $THING ] && echo 'hello world'",
     ],
+)
+
+write_file(
+    name = "sql_code_generator",
+    out = "generated.sql",
+    content = [
+        "SeLeCt *",
+        "from foo",
+        "where 1 = 1;",
+    ],
+)
+
+filegroup(
+    name = "generated_sql",
+    srcs = ["generated.sql"],
+    tags = ["lint-with-sqlfluff"],
 )
 
 ts_project(
@@ -148,6 +166,11 @@ shellcheck_test(
     srcs = [":generated_sh"],
     # Expected to fail because the sh_library opted-in to having generated code checked as well
     tags = ["manual"],
+)
+
+sqlfluff_test(
+    name = "sqlfluff-test",
+    srcs = [":generated_sql"],
 )
 
 format_test(
