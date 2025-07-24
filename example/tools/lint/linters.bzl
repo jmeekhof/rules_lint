@@ -12,6 +12,7 @@ load("@aspect_rules_lint//lint:pmd.bzl", "lint_pmd_aspect")
 load("@aspect_rules_lint//lint:ruff.bzl", "lint_ruff_aspect")
 load("@aspect_rules_lint//lint:shellcheck.bzl", "lint_shellcheck_aspect")
 load("@aspect_rules_lint//lint:spotbugs.bzl", "lint_spotbugs_aspect")
+load("@aspect_rules_lint//lint:sqlfluff.bzl", "lint_sqlfluff_aspect")
 load("@aspect_rules_lint//lint:stylelint.bzl", "lint_stylelint_aspect")
 load("@aspect_rules_lint//lint:vale.bzl", "lint_vale_aspect")
 
@@ -43,6 +44,13 @@ flake8 = lint_flake8_aspect(
 )
 
 flake8_test = lint_test(aspect = flake8)
+
+sqlfluff = lint_sqlfluff_aspect(
+    binary = Label("//tools/lint:sqlfluff"),
+    config = Label("//:.sqlfluff"),
+)
+
+sqlfluff_test = lint_test(aspect = sqlfluff)
 
 pmd = lint_pmd_aspect(
     binary = Label("//tools/lint:pmd"),
