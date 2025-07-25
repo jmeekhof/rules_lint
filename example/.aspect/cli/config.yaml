@@ -6,6 +6,7 @@ lint:
     - //tools/lint:linters.bzl%ktlint
     - //tools/lint:linters.bzl%pmd
     - //tools/lint:linters.bzl%stylelint
+    - //tools/lint:linters.bzl%sqlfluff
     - //tools/lint:linters.bzl%ruff
     - //tools/lint:linters.bzl%vale
     - //tools/lint:linters.bzl%checkstyle
