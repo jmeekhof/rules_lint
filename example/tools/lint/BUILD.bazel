@@ -26,13 +26,6 @@ py_console_script_binary(
     pkg = "@pip//flake8:pkg",
 )
 
-# This can also be tested by running:
-# bazel run :sqlfluff -- --help
-py_console_script_binary(
-    name = "sqlfluff",
-    pkg = "@pip//sqlfluff:pkg",
-)
-
 eslint_bin.eslint_binary(name = "eslint")
 
 stylelint_bin.stylelint_binary(name = "stylelint")
