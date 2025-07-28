@@ -2,7 +2,7 @@
 
 load("@aspect_bazel_lib//lib:testing.bzl", "assert_json_matches")
 load("@bazel_features//:features.bzl", "bazel_features")
-load("//tools/lint:linters.bzl", "buf", "clang_tidy", "eslint", "flake8", "ruff", "shellcheck", "stylelint", "vale")
+load("//tools/lint:linters.bzl", "buf", "clang_tidy", "eslint", "flake8", "ruff", "shellcheck", "sqlfluff", "stylelint", "vale")
 
 SARIF_TOOL_DRIVER_NAME_FILTER = ".runs[].tool.driver.name"
 PHYSICAL_ARTIFACT_LOCATION_URI_FILTER = ".runs[].results | map(.locations | map(.physicalLocation.artifactLocation.uri)) | flatten | unique[]"
@@ -38,6 +38,11 @@ machine_ruff_report = rule(
 machine_shellcheck_report = rule(
     implementation = _machine_report,
     attrs = {"src": attr.label(aspects = [shellcheck])},
+)
+
+machine_sqlfluff_report = rule(
+    implementation = _machine_report,
+    attrs = {"src": attr.label(aspects = [sqlfluff])},
 )
 
 machine_eslint_report = rule(
