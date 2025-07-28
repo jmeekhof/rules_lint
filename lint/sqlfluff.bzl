@@ -21,16 +21,16 @@ load("@aspect_rules_lint//lint:sqlfluff.bzl", "lint_flake8_aspect")
 
 sqlfluff = lint_flake8_aspect(
     binary = "@@//tools/lint:sqlfluff",
-    config = "@@//:.sqlfluff",
+    config = ["@@//:.sqlfluff"],
 )
 ```
 """
 
-load("//lint/private:lint_aspect.bzl", "LintOptionsInfo", "OPTIONAL_SARIF_PARSER_TOOLCHAIN", "OUTFILE_FORMAT", "filter_srcs", "noop_lint_action", "output_files", "parse_to_sarif_action", "patch_and_output_files", "should_visit")
+load("//lint/private:lint_aspect.bzl", "LintOptionsInfo", "OPTIONAL_SARIF_PARSER_TOOLCHAIN", "OUTFILE_FORMAT", "filter_srcs", "noop_lint_action", "output_files", "parse_to_sarif_action", "should_visit")
 
 _MNEMONIC = "AspectRulesLintSQLFluff"
 
-def sqlfluff_action(ctx, executable, srcs, config, stdout, exit_code = None, options = [] ):
+def sqlfluff_action(ctx, executable, srcs, config, stdout, exit_code = None, options = []):
     """Run sqlfluff as an action under Bazel.
 
     Based on https://sqlfluff.pycqa.org/en/latest/user/invocation.html
@@ -39,12 +39,13 @@ def sqlfluff_action(ctx, executable, srcs, config, stdout, exit_code = None, opt
         ctx: Bazel Rule or Aspect evaluation context
         executable: label of the the sqlfluff program
         srcs: python files to be linted
-        config: label of the sqlfluff config file (setup.cfg, tox.ini, pep8.ini, .sqlfluff, pyproject.toml)
+        config: labels of the sqlfluff config files (setup.cfg, tox.ini, pep8.ini, .sqlfluff, pyproject.toml)
         stdout: output file containing stdout of sqlfluff
         exit_code: output file containing exit code of sqlfluff
             If None, then fail the build when sqlfluff exits non-zero.
+        options: command-line options to pass to sqlfluff
     """
-    inputs = srcs + [config]
+    inputs = srcs + config
     outputs = [stdout]
 
     # Wire command-line options, see
@@ -90,14 +91,13 @@ def _sqlfluff_aspect_impl(target, ctx):
 
     # https://docs.sqlfluff.com/en/stable/reference/cli.html#cliref
     color_options = ["--color"] if ctx.attr._options[LintOptionsInfo].color else ["--nocolor"]
-    sqlfluff_action(ctx, ctx.executable._sqlfluff, files_to_lint, ctx.file._config_file, outputs.human.out, outputs.human.exit_code, color_options)
+    sqlfluff_action(ctx, ctx.executable._sqlfluff, files_to_lint, ctx.files._config_files, outputs.human.out, outputs.human.exit_code, color_options)
     raw_machine_report = ctx.actions.declare_file(OUTFILE_FORMAT.format(label = target.label.name, mnemonic = _MNEMONIC, suffix = "raw_machine_report"))
-    sqlfluff_action( ctx, ctx.executable._sqlfluff, files_to_lint, ctx.file._config_file, raw_machine_report, outputs.machine.exit_code)
-    parse_to_sarif_action( ctx, _MNEMONIC, raw_machine_report, outputs.machine.out)
+    sqlfluff_action(ctx, ctx.executable._sqlfluff, files_to_lint, ctx.files._config_files, raw_machine_report, outputs.machine.exit_code)
+    parse_to_sarif_action(ctx, _MNEMONIC, raw_machine_report, outputs.machine.out)
     return [info]
 
-
-def lint_sqlfluff_aspect(binary, config, filegroup_tags = ["lint-with-sqlfluff"]):
+def lint_sqlfluff_aspect(binary, configs, filegroup_tags = ["lint-with-sqlfluff"]):
     """A factory function to create a linter aspect.
 
     Attrs:
@@ -116,6 +116,10 @@ def lint_sqlfluff_aspect(binary, config, filegroup_tags = ["lint-with-sqlfluff"]
         filegroup_tags: tags to filter the files to be linted.
             Defaults to `["lint-with-sqlfluff"]`, which is the default tag for sqlfluff files in this repo.
     """
+
+    if type(configs) == "string":
+        configs = [configs]
+
     return aspect(
         implementation = _sqlfluff_aspect_impl,
         # Edges we need to walk up the graph from the selected targets.
@@ -131,14 +135,14 @@ def lint_sqlfluff_aspect(binary, config, filegroup_tags = ["lint-with-sqlfluff"]
                 executable = True,
                 cfg = "exec",
             ),
-            "_config_file": attr.label(
-                default = config,
-                allow_single_file = True,
+            "_config_files": attr.label_list(
+                default = configs,
+                allow_files = True,
             ),
             "_filegroup_tags": attr.string_list(
                 default = filegroup_tags,
                 doc = "Tags to filter the files to be linted. Defaults to ['lint-with-sqlfluff'].",
             ),
         },
-        toolchains = [ OPTIONAL_SARIF_PARSER_TOOLCHAIN ],
+        toolchains = [OPTIONAL_SARIF_PARSER_TOOLCHAIN],
     )
